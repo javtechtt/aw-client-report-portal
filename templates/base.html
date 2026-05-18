@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}AW Client Report Portal{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container site-header-row">
+            <a href="{{ url_for('dashboard.index') }}" class="brand">AW Client Report Portal</a>
+            <nav class="site-nav">
+                <a href="{{ url_for('dashboard.index') }}">Dashboard</a>
+                <a href="{{ url_for('reports.history') }}">Report History</a>
+            </nav>
+        </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container flash-stack">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container muted">Internal portal &middot; V1 build</div>
+    </footer>
+</body>
+</html>

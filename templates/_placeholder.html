@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Coming in Phase {{ phase }} &middot; AW Client Report Portal{% endblock %}
+{% block content %}
+<section class="placeholder-card">
+    <span class="placeholder-phase">Phase {{ phase }}</span>
+    <h1>{{ feature }}</h1>
+    <p class="muted">This screen is part of the staged V1 build and ships in Phase {{ phase }}.</p>
+    <a class="btn btn-secondary" href="{{ url_for('dashboard.index') }}">&larr; Back to Dashboard</a>
+</section>
+{% endblock %}

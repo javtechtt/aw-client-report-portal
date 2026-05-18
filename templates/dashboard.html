@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Dashboard &middot; AW Client Report Portal{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>Clients</h1>
+        <p class="muted">{{ clients|length }} household{{ '' if clients|length == 1 else 's' }} on file</p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-primary" href="{{ url_for('clients.new') }}">+ Add Client</a>
+        <a class="btn btn-secondary" href="{{ url_for('reports.history') }}">Report History</a>
+    </div>
+</section>
+
+{% if clients %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Household</th>
+            <th>Type</th>
+            <th>People</th>
+            <th>Accounts</th>
+            <th>Last Report</th>
+            <th class="row-actions">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for c in clients %}
+        <tr>
+            <td><strong>{{ c.household_name }}</strong></td>
+            <td><span class="pill pill-{{ c.client_type }}">{{ c.client_type|title }}</span></td>
+            <td>{{ c.persons|length }}</td>
+            <td>{{ c.accounts|length }}</td>
+            <td>{{ c.last_report_date.strftime('%b %d, %Y') if c.last_report_date else '—' }}</td>
+            <td class="row-actions">
+                <a class="btn btn-link" href="{{ url_for('clients.show', client_id=c.id) }}">View</a>
+                <a class="btn btn-link" href="{{ url_for('reports.new', client_id=c.id) }}">Generate Report</a>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    <p>No clients yet.</p>
+    <a class="btn btn-primary" href="{{ url_for('clients.new') }}">+ Add your first client</a>
+</div>
+{% endif %}
+{% endblock %}
