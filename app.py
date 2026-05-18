@@ -12,13 +12,20 @@ from extensions import db
 load_dotenv()
 
 
+def _ensure_sqlite_parent_dir(uri: str) -> None:
+    # Works for both local (database/portal.db) and Railway (e.g. /data/portal.db
+    # mounted from a persistent volume). Non-sqlite URIs are ignored.
+    if uri.startswith("sqlite:///"):
+        Path(uri[len("sqlite:///"):]).parent.mkdir(parents=True, exist_ok=True)
+
+
 def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
 
     config_name = config_name or os.getenv("APP_CONFIG", "development")
     app.config.from_object(CONFIGS[config_name])
 
-    Path(app.root_path, "database").mkdir(exist_ok=True)
+    _ensure_sqlite_parent_dir(app.config["SQLALCHEMY_DATABASE_URI"])
 
     db.init_app(app)
 
