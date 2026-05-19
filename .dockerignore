@@ -1,0 +1,23 @@
+# Files that should never end up inside the Railway image.
+# Keep this in sync with .gitignore for the obvious ones.
+.git/
+.gitignore
+.env
+.env.example
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+*.db
+database/
+reference/
+node_modules/
+.venv/
+.vscode/
+.idea/
+*.log
+Dockerfile
+.dockerignore
+README.md
