@@ -34,9 +34,17 @@ def create_app(config_name: str | None = None) -> Flask:
     # existing tables. Avoids needing a separate `flask init-db` step on
     # fresh deploys (Railway, new env, etc.). For schema changes later
     # we'd swap this for Alembic migrations.
+    #
+    # On a fresh empty DB we also drop in the three clearly-fake sample
+    # households (single / married / stress-test) so the team has
+    # something to click through immediately. Once any real client is
+    # added via the UI, the seed becomes a no-op forever.
     with app.app_context():
         import models  # noqa: F401 — register model classes with metadata
         db.create_all()
+        from seed import seed_if_empty
+        if seed_if_empty():
+            app.logger.info("Auto-seeded 3 sample households into fresh DB.")
 
     from routes import dashboard, clients, accounts, reports
     app.register_blueprint(dashboard.bp)

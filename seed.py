@@ -16,6 +16,8 @@ from models import Account, Client, Person, SacsStatic
 
 
 def run():
+    """Destructive reseed — wipes all clients and reinserts the three
+    sample households. Used by `flask --app app seed` for developer reset."""
     # Wipe via ORM so cascade="all, delete-orphan" fires correctly.
     for c in Client.query.all():
         db.session.delete(c)
@@ -26,6 +28,23 @@ def run():
     _stress_test_sample()
 
     db.session.commit()
+
+
+def seed_if_empty() -> bool:
+    """Insert the three sample households only when the database has no
+    clients yet. Safe to call on every app boot — once real data exists,
+    this becomes a no-op and never touches it.
+
+    Returns True if seeding ran, False if skipped.
+    """
+    if Client.query.count() > 0:
+        return False
+
+    _single_sample()
+    _married_sample()
+    _stress_test_sample()
+    db.session.commit()
+    return True
 
 
 def _single_sample():
