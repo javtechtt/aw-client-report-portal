@@ -1,0 +1,135 @@
+<form method="post" action="{{ submit_url }}" class="client-form" data-client-type="{{ form.get('client_type', 'single') }}" novalidate>
+
+    <section class="form-section">
+        <h2>Household Information</h2>
+        <div class="form-row">
+            <label class="form-field">
+                <span>Household name <em>*</em></span>
+                <input type="text" name="household_name" value="{{ form.get('household_name', '') }}" required>
+                {% if errors.get('household_name') %}<span class="field-error">{{ errors.get('household_name') }}</span>{% endif %}
+            </label>
+        </div>
+        <fieldset class="form-field client-type-fieldset">
+            <legend>Client type <em>*</em></legend>
+            <label class="radio">
+                <input type="radio" name="client_type" value="single" {% if form.get('client_type') == 'single' %}checked{% endif %}>
+                <span>Single</span>
+            </label>
+            <label class="radio">
+                <input type="radio" name="client_type" value="married" {% if form.get('client_type') == 'married' %}checked{% endif %}>
+                <span>Married</span>
+            </label>
+            {% if errors.get('client_type') %}<span class="field-error">{{ errors.get('client_type') }}</span>{% endif %}
+        </fieldset>
+    </section>
+
+    <section class="form-section">
+        <h2>Client 1</h2>
+        <div class="form-row form-row-3col">
+            <label class="form-field">
+                <span>Full name <em>*</em></span>
+                <input type="text" name="client_1_full_name" value="{{ form.get('client_1_full_name', '') }}" required>
+                {% if errors.get('client_1_full_name') %}<span class="field-error">{{ errors.get('client_1_full_name') }}</span>{% endif %}
+            </label>
+            <label class="form-field">
+                <span>Date of birth <em>*</em></span>
+                <input type="date" name="client_1_dob" value="{{ form.get('client_1_dob', '') }}" max="{{ today_iso }}" required>
+                {% if errors.get('client_1_dob') %}<span class="field-error">{{ errors.get('client_1_dob') }}</span>{% endif %}
+            </label>
+            <label class="form-field">
+                <span>SSN (last 4) <em>*</em></span>
+                <input type="text" name="client_1_ssn_last_four" value="{{ form.get('client_1_ssn_last_four', '') }}" pattern="\d{4}" maxlength="4" minlength="4" inputmode="numeric" required>
+                {% if errors.get('client_1_ssn_last_four') %}<span class="field-error">{{ errors.get('client_1_ssn_last_four') }}</span>{% endif %}
+            </label>
+        </div>
+    </section>
+
+    <section class="form-section" data-client-2-section>
+        <h2>Client 2 <span class="muted small">— required for married households</span></h2>
+        <div class="form-row form-row-3col">
+            <label class="form-field">
+                <span>Full name</span>
+                <input type="text" name="client_2_full_name" value="{{ form.get('client_2_full_name', '') }}">
+                {% if errors.get('client_2_full_name') %}<span class="field-error">{{ errors.get('client_2_full_name') }}</span>{% endif %}
+            </label>
+            <label class="form-field">
+                <span>Date of birth</span>
+                <input type="date" name="client_2_dob" value="{{ form.get('client_2_dob', '') }}" max="{{ today_iso }}">
+                {% if errors.get('client_2_dob') %}<span class="field-error">{{ errors.get('client_2_dob') }}</span>{% endif %}
+            </label>
+            <label class="form-field">
+                <span>SSN (last 4)</span>
+                <input type="text" name="client_2_ssn_last_four" value="{{ form.get('client_2_ssn_last_four', '') }}" pattern="\d{4}" maxlength="4" inputmode="numeric">
+                {% if errors.get('client_2_ssn_last_four') %}<span class="field-error">{{ errors.get('client_2_ssn_last_four') }}</span>{% endif %}
+            </label>
+        </div>
+    </section>
+
+    <section class="form-section">
+        <h2>SACS Financial Setup</h2>
+        <p class="muted small section-hint">All amounts in USD. Private reserve target is auto-suggested as <strong>6 &times; monthly outflow + insurance deductibles</strong>; you can override it.</p>
+
+        <div class="form-row form-row-2col">
+            <label class="form-field">
+                <span>Client 1 monthly salary</span>
+                <span class="input-prefix">
+                    <span class="prefix">$</span>
+                    <input type="number" name="client_1_monthly_salary" value="{{ form.get('client_1_monthly_salary', '') }}" step="0.01" min="0" placeholder="0.00">
+                </span>
+                {% if errors.get('client_1_monthly_salary') %}<span class="field-error">{{ errors.get('client_1_monthly_salary') }}</span>{% endif %}
+            </label>
+            <label class="form-field">
+                <span>Client 2 monthly salary</span>
+                <span class="input-prefix">
+                    <span class="prefix">$</span>
+                    <input type="number" name="client_2_monthly_salary" value="{{ form.get('client_2_monthly_salary', '') }}" step="0.01" min="0" placeholder="0.00">
+                </span>
+                {% if errors.get('client_2_monthly_salary') %}<span class="field-error">{{ errors.get('client_2_monthly_salary') }}</span>{% endif %}
+            </label>
+        </div>
+
+        <div class="form-row form-row-2col">
+            <label class="form-field">
+                <span>Monthly outflow budget <em>*</em></span>
+                <span class="input-prefix">
+                    <span class="prefix">$</span>
+                    <input type="number" name="monthly_outflow_budget" value="{{ form.get('monthly_outflow_budget', '') }}" step="0.01" min="0" required placeholder="0.00">
+                </span>
+                {% if errors.get('monthly_outflow_budget') %}<span class="field-error">{{ errors.get('monthly_outflow_budget') }}</span>{% endif %}
+            </label>
+            <label class="form-field">
+                <span>Insurance deductibles total</span>
+                <span class="input-prefix">
+                    <span class="prefix">$</span>
+                    <input type="number" name="insurance_deductibles_total" value="{{ form.get('insurance_deductibles_total', '') }}" step="0.01" min="0" placeholder="0.00">
+                </span>
+                {% if errors.get('insurance_deductibles_total') %}<span class="field-error">{{ errors.get('insurance_deductibles_total') }}</span>{% endif %}
+            </label>
+        </div>
+
+        <div class="form-row form-row-2col">
+            <label class="form-field">
+                <span>Floor amount</span>
+                <span class="input-prefix">
+                    <span class="prefix">$</span>
+                    <input type="number" name="floor_amount" value="{{ form.get('floor_amount', '1000.00') }}" step="0.01" min="0">
+                </span>
+                {% if errors.get('floor_amount') %}<span class="field-error">{{ errors.get('floor_amount') }}</span>{% endif %}
+            </label>
+            <label class="form-field">
+                <span>Private reserve target</span>
+                <span class="input-prefix">
+                    <span class="prefix">$</span>
+                    <input type="number" name="private_reserve_target" value="{{ form.get('private_reserve_target', '') }}" step="0.01" min="0" placeholder="0.00" data-auto-target>
+                </span>
+                {% if errors.get('private_reserve_target') %}<span class="field-error">{{ errors.get('private_reserve_target') }}</span>{% endif %}
+            </label>
+        </div>
+    </section>
+
+    <div class="form-actions">
+        <a class="btn btn-secondary" href="{{ cancel_url }}">Cancel</a>
+        <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+    </div>
+</form>
+<script src="{{ url_for('static', filename='js/clients.js') }}" defer></script>

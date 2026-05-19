@@ -13,13 +13,15 @@
 </section>
 
 {% if clients %}
-<table class="data-table">
+<table class="data-table data-table-compact">
     <thead>
         <tr>
             <th>Household</th>
             <th>Type</th>
-            <th>People</th>
-            <th>Accounts</th>
+            <th class="num">People</th>
+            <th class="num">Accounts</th>
+            <th>Created</th>
+            <th>Updated</th>
             <th>Last Report</th>
             <th class="row-actions">Actions</th>
         </tr>
@@ -27,14 +29,20 @@
     <tbody>
     {% for c in clients %}
         <tr>
-            <td><strong>{{ c.household_name }}</strong></td>
+            <td>
+                <a class="cell-link" href="{{ url_for('clients.show', client_id=c.id) }}">
+                    <strong>{{ c.household_name }}</strong>
+                </a>
+            </td>
             <td><span class="pill pill-{{ c.client_type }}">{{ c.client_type|title }}</span></td>
-            <td>{{ c.persons|length }}</td>
-            <td>{{ c.accounts|length }}</td>
-            <td>{{ c.last_report_date.strftime('%b %d, %Y') if c.last_report_date else '—' }}</td>
+            <td class="num">{{ c.persons|length }}</td>
+            <td class="num">{{ c.accounts|length }}</td>
+            <td class="muted small">{{ c.created_at.strftime('%b %d, %Y') }}</td>
+            <td class="muted small">{{ c.updated_at.strftime('%b %d, %Y') }}</td>
+            <td class="muted small">{{ c.last_report_date.strftime('%b %d, %Y') if c.last_report_date else '—' }}</td>
             <td class="row-actions">
                 <a class="btn btn-link" href="{{ url_for('clients.show', client_id=c.id) }}">View</a>
-                <a class="btn btn-link" href="{{ url_for('reports.new', client_id=c.id) }}">Generate Report</a>
+                <a class="btn btn-link" href="{{ url_for('reports.new', client_id=c.id) }}">Generate</a>
             </td>
         </tr>
     {% endfor %}

@@ -144,3 +144,11 @@ class QuarterlyReportBalance(db.Model):
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False)
     balance_at_report = db.Column(db.Numeric(14, 2), nullable=False)
     cash_balance_at_report = db.Column(db.Numeric(14, 2))
+
+    # One-way relationship so report snapshots can render account metadata
+    # (type, owner, last-four) without a separate lookup. Note: master
+    # Account rows can be edited after a snapshot is captured, so derived
+    # display values may drift over time — true immutability of these
+    # fields would require snapshotting them in additional columns. Phase 8
+    # report history can revisit this.
+    account = db.relationship("Account", foreign_keys=[account_id])

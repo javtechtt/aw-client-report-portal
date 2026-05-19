@@ -1,0 +1,47 @@
+{% set is_liability = account.category == 'liability' %}
+<article class="account-card">
+    <header class="account-card-head">
+        <div class="account-card-title">
+            <strong>{{ account.account_type or 'Account' }}</strong>
+            {% if account.account_last_four %}
+                <span class="muted small">x{{ account.account_last_four }}</span>
+            {% endif %}
+        </div>
+        <span class="status-badge status-{{ account.status }}">{{ {'up_to_date': 'Up to date', 'stale': 'Stale', 'missing': 'Missing'}[account.status] }}</span>
+    </header>
+
+    <div class="account-card-name muted">
+        {% if account.institution_name %}{{ account.institution_name }}{% endif %}
+        {% if account.account_nickname %}
+            {% if account.institution_name %} &middot; {% endif %}{{ account.account_nickname }}
+        {% endif %}
+    </div>
+
+    <div class="account-card-balance">
+        <span class="amount">${{ '{:,.2f}'.format(account.balance) }}</span>
+        {% if account.cash_balance is not none %}
+            <span class="muted small">${{ '{:,.2f}'.format(account.cash_balance) }} cash</span>
+        {% endif %}
+    </div>
+
+    <dl class="account-card-meta">
+        <dt>Owner</dt>
+        <dd>{{ {'client_1': 'Client 1', 'client_2': 'Client 2', 'joint': 'Joint', 'trust': 'Trust'}[account.owner] }}</dd>
+
+        {% if is_liability and account.interest_rate is not none %}
+        <dt>Rate</dt>
+        <dd>{{ '{:.2f}'.format(account.interest_rate * 100) }}%</dd>
+        {% endif %}
+
+        <dt>Updated</dt>
+        <dd>{{ account.date_updated.strftime('%b %d, %Y') if account.date_updated else '—' }}</dd>
+    </dl>
+
+    <footer class="account-card-actions">
+        <a class="btn btn-link" href="{{ url_for('accounts.edit', account_id=account.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('accounts.delete', account_id=account.id) }}" class="inline-form"
+              onsubmit="return confirm('Delete this account? This cannot be undone.');">
+            <button type="submit" class="btn btn-link btn-danger">Delete</button>
+        </form>
+    </footer>
+</article>

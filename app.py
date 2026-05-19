@@ -35,6 +35,49 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(accounts.bp)
     app.register_blueprint(reports.bp)
 
+    @app.context_processor
+    def _inject_today():
+        from datetime import date
+        return {"today_iso": date.today().isoformat()}
+
+    # Currency / percentage / status / date filters for templates.
+    from decimal import Decimal as _Decimal
+
+    @app.template_filter("currency")
+    def _currency(value):
+        if value is None or value == "":
+            return "—"
+        return f"${_Decimal(value):,.2f}"
+
+    @app.template_filter("percent")
+    def _percent(value):
+        if value is None or value == "":
+            return "—"
+        return f"{_Decimal(value) * 100:.2f}%"
+
+    @app.template_filter("status_label")
+    def _status_label(value):
+        return {
+            "up_to_date": "Up to date",
+            "stale":      "Stale",
+            "missing":    "Missing",
+        }.get(value, value or "")
+
+    @app.template_filter("owner_label")
+    def _owner_label(value):
+        return {
+            "client_1": "Client 1",
+            "client_2": "Client 2",
+            "joint":    "Joint",
+            "trust":    "Trust",
+        }.get(value, value or "")
+
+    @app.template_filter("nice_date")
+    def _nice_date(value, fmt="%b %d, %Y"):
+        if value is None:
+            return "—"
+        return value.strftime(fmt)
+
     @app.cli.command("init-db")
     def init_db_command():
         """Create all tables in the SQLite database."""

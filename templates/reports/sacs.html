@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}SACS Preview &middot; {{ client.household_name }}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/report-sacs.css') }}">
+{% endblock %}
+{% block content %}
+
+<div class="report-print-bar">
+    <div>
+        <a class="btn btn-link" href="{{ url_for('reports.review', report_id=report.id) }}">&larr; Back to Calculation Review</a>
+    </div>
+    <div class="report-print-actions">
+        <a class="btn btn-primary" href="{{ url_for('reports.sacs_pdf', report_id=report.id) }}">Download PDF</a>
+        <button type="button" class="btn btn-secondary" onclick="window.print()">Print</button>
+        <a class="btn btn-secondary" href="{{ url_for('reports.tcc_preview', report_id=report.id) }}">Preview TCC</a>
+    </div>
+</div>
+
+<article class="sacs-page" role="document">
+
+    <header class="sacs-header">
+        <h1 class="sacs-title">Simple Automated Cashflow System (SACS)</h1>
+        <p class="sacs-subtitle">
+            {{ client.household_name }}
+            <span class="dot">&middot;</span> {{ quarter_label }}
+            <span class="dot">&middot;</span> Report date {{ report_date|nice_date('%B %d, %Y') }}
+        </p>
+    </header>
+
+    {% if warnings %}
+    <aside class="sacs-warnings" role="status">
+        <strong>Notes on this report:</strong>
+        <ul>
+        {% for w in warnings %}
+            <li class="warn-{{ w.level }}">{{ w.title }}</li>
+        {% endfor %}
+        </ul>
+    </aside>
+    {% endif %}
+
+    <figure class="sacs-diagram-wrap" aria-label="Cashflow diagram">
+        <svg class="sacs-diagram"
+             viewBox="0 0 800 620"
+             preserveAspectRatio="xMidYMid meet"
+             xmlns="http://www.w3.org/2000/svg">
+
+            <defs>
+                <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <polygon points="0 0, 9 3, 0 6" fill="#dc2626"/>
+                </marker>
+                <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <polygon points="0 0, 9 3, 0 6" fill="#2563eb"/>
+                </marker>
+                <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <polygon points="0 0, 9 3, 0 6" fill="#475467"/>
+                </marker>
+            </defs>
+
+            {# ─── Salary breakdown (top-left) ─────────────────────────── #}
+            {% if salary_breakdown %}
+            <g class="sacs-salary">
+                <text x="30" y="44" font-size="34" font-weight="700" fill="#16a34a">$</text>
+                <text x="60" y="36" font-size="12" fill="#101828">{{ salary_breakdown.c1|currency }} &mdash; Client 1</text>
+                {% if salary_breakdown.c2 is not none %}
+                <text x="60" y="54" font-size="12" fill="#101828">{{ salary_breakdown.c2|currency }} &mdash; Client 2</text>
+                {% endif %}
+                <line x1="90" y1="76" x2="135" y2="115" stroke="#16a34a" stroke-width="2"
+                      marker-end="url(#arrow-gray)"/>
+            </g>
+            {% endif %}
+
+            {# ─── "X = Monthly Expenses" caption (top-right) ──────────── #}
+            <g class="sacs-x-caption">
+                <text x="770" y="38" text-anchor="end" font-size="12" fill="#101828">X = Monthly Expenses</text>
+                <line x1="700" y1="48" x2="680" y2="115" stroke="#475467" stroke-width="2"
+                      marker-end="url(#arrow-gray)"/>
+            </g>
+
+            {# ─── Inflow → Outflow arrow (red, with X transfer label) ── #}
+            <line x1="265" y1="185" x2="540" y2="185" stroke="#dc2626" stroke-width="3"
+                  marker-end="url(#arrow-red)"/>
+            <text x="402" y="175" text-anchor="middle" font-size="13" font-weight="600" fill="#dc2626">
+                X = {{ total_outflow|currency }}/month
+            </text>
+            <text x="402" y="207" text-anchor="middle" font-size="11" fill="#475467">
+                Automated transfer on the 28th
+            </text>
+
+            {# ─── Inflow → Private Reserve arrow (blue, excess transfer) ─ #}
+            <path d="M 215,260 Q 290,340 355,395" stroke="#2563eb" stroke-width="3" fill="none"
+                  marker-end="url(#arrow-blue)"/>
+            <text x="225" y="345" font-size="13" font-weight="700" fill="#2563eb">
+                {{ excess_transfer|currency }}/mo*
+            </text>
+
+            {# ─── Inflow circle ───────────────────────────────────────── #}
+            <g class="bubble-inflow">
+                <circle cx="170" cy="185" r="90" fill="#16a34a"/>
+                <text x="170" y="158" text-anchor="middle" fill="white" font-size="20" font-weight="700"
+                      letter-spacing="2">INFLOW</text>
+                <rect x="110" y="175" width="120" height="34" rx="4" fill="white"/>
+                <text x="170" y="199" text-anchor="middle" fill="#101828" font-size="17" font-weight="700">
+                    {{ total_inflow|currency }}
+                </text>
+                <text x="170" y="298" text-anchor="middle" fill="#475467" font-size="11">
+                    {{ floor_amount|currency }} Floor
+                </text>
+            </g>
+
+            {# ─── Outflow circle ──────────────────────────────────────── #}
+            <g class="bubble-outflow">
+                <circle cx="630" cy="185" r="90" fill="#dc2626"/>
+                <text x="630" y="158" text-anchor="middle" fill="white" font-size="20" font-weight="700"
+                      letter-spacing="2">OUTFLOW</text>
+                <rect x="570" y="175" width="120" height="34" rx="4" fill="white"/>
+                <text x="630" y="199" text-anchor="middle" fill="#101828" font-size="17" font-weight="700">
+                    {{ total_outflow|currency }}
+                </text>
+                <text x="630" y="298" text-anchor="middle" fill="#475467" font-size="11">
+                    {{ floor_amount|currency }} Floor
+                </text>
+            </g>
+
+            {# ─── Private Reserve circle (centered, lower) ─────────────── #}
+            <g class="bubble-reserve">
+                <circle cx="400" cy="470" r="110" fill="#2563eb"/>
+                <text x="400" y="435" text-anchor="middle" fill="white" font-size="17" font-weight="700"
+                      letter-spacing="1.5">PRIVATE</text>
+                <text x="400" y="458" text-anchor="middle" fill="white" font-size="17" font-weight="700"
+                      letter-spacing="1.5">RESERVE</text>
+                <rect x="325" y="473" width="150" height="34" rx="4" fill="white"/>
+                <text x="400" y="496" text-anchor="middle" fill="#101828" font-size="16" font-weight="700">
+                    {{ private_reserve_target|currency }}
+                </text>
+                <text x="400" y="528" text-anchor="middle" fill="white" font-size="11">
+                    Target
+                </text>
+            </g>
+
+            {# ─── Monthly cashflow label ──────────────────────────────── #}
+            <text x="400" y="605" text-anchor="middle" font-size="13" font-weight="700" fill="#101828"
+                  letter-spacing="3">MONTHLY CASHFLOW</text>
+        </svg>
+    </figure>
+
+    <section class="sacs-legend">
+        <h2>Notes &amp; Definitions</h2>
+        <ul>
+            <li>
+                <strong>Floor amount</strong>: {{ floor_amount|currency }} buffer maintained at all times in both
+                the inflow and outflow accounts.
+            </li>
+            <li>
+                <strong>Private reserve target</strong>: 6 &times; monthly outflow
+                {% if insurance_deductibles_total and insurance_deductibles_total > 0 %}
+                  + insurance deductibles ({{ insurance_deductibles_total|currency }})
+                {% endif %}
+                = {{ private_reserve_target|currency }}.
+            </li>
+            <li>
+                <strong>Excess transfer</strong>: automated monthly transfer from the inflow account
+                to the private reserve once the agreed outflow has been satisfied.
+            </li>
+            {% if warnings %}
+            <li class="warn">
+                * This report has open warnings — see the notes at the top of this page.
+            </li>
+            {% endif %}
+        </ul>
+        <p class="sacs-footer-meta">
+            {{ client.household_name }} &middot; {{ quarter_label }} &middot; Generated {{ report.created_at|nice_date('%B %d, %Y') }}
+        </p>
+    </section>
+
+</article>
+
+{% endblock %}

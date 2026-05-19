@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ report.quarter_label }} &middot; {{ client.household_name }}{% endblock %}
+{% block content %}
+
+<section class="page-head">
+    <div>
+        <h1>{{ report.quarter_label }}</h1>
+        <p class="muted">
+            <a class="cell-link" href="{{ url_for('clients.show', client_id=client.id) }}">{{ client.household_name }}</a>
+            &middot; Report date {{ report.report_date|nice_date('%B %d, %Y') }}
+            &middot; Created {{ report.created_at|nice_date }}
+            &middot; <span class="pill pill-{{ client.client_type }}">{{ client.client_type|title }}</span>
+        </p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-primary" href="{{ url_for('reports.sacs_preview', report_id=report.id) }}">Preview SACS Report</a>
+        <a class="btn btn-primary" href="{{ url_for('reports.tcc_preview', report_id=report.id) }}">Preview TCC Report</a>
+        <a class="btn btn-secondary" href="{{ url_for('reports.sacs_pdf', report_id=report.id) }}">Download SACS PDF</a>
+        <a class="btn btn-secondary" href="{{ url_for('reports.tcc_pdf', report_id=report.id) }}">Download TCC PDF</a>
+    </div>
+</section>
+
+{% if warnings %}
+<section class="warnings-stack">
+    {% for w in warnings %}
+    <div class="warning-card warning-{{ w.level }}">
+        <strong class="warning-title">{{ w.title }}</strong>
+        <span class="warning-detail">{{ w.detail }}</span>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<section class="review-grid">
+    <div class="review-card">
+        <h2>SACS Calculation Summary</h2>
+        {% set s = client.sacs_static %}
+        <table class="kv-table">
+            <tr><td>Client 1 monthly salary</td><td class="num">{{ s.client_1_monthly_salary|currency if s }}</td></tr>
+            {% if client.client_type == 'married' %}
+            <tr><td>Client 2 monthly salary</td><td class="num">{{ s.client_2_monthly_salary|currency if s else '—' }}</td></tr>
+            {% endif %}
+            <tr class="kv-emphasis"><td>Total Inflow</td><td class="num">{{ report.total_inflow|currency }}</td></tr>
+            <tr><td>Monthly Outflow</td><td class="num">{{ report.total_outflow|currency }}</td></tr>
+            <tr class="kv-accent"><td>Excess Transfer</td><td class="num">{{ report.excess_transfer|currency }}</td></tr>
+            <tr><td>Insurance Deductibles Total</td><td class="num">{{ s.insurance_deductibles_total|currency if s }}</td></tr>
+            <tr><td>Floor Amount</td><td class="num">{{ s.floor_amount|currency if s }}</td></tr>
+            <tr class="kv-emphasis"><td>Private Reserve Target</td><td class="num">{{ report.private_reserve_target|currency }}</td></tr>
+        </table>
+    </div>
+
+    <div class="review-card">
+        <h2>TCC Calculation Summary</h2>
+        <table class="kv-table">
+            <tr><td>Client 1 Retirement Total</td><td class="num">{{ report.client_1_retirement_total|currency }}</td></tr>
+            {% if client.client_type == 'married' %}
+            <tr><td>Client 2 Retirement Total</td><td class="num">{{ report.client_2_retirement_total|currency }}</td></tr>
+            {% endif %}
+            <tr><td>Non-Retirement Total</td><td class="num">{{ report.non_retirement_total|currency }}</td></tr>
+            <tr><td>Trust Total</td><td class="num">{{ report.trust_total|currency }}</td></tr>
+            <tr class="kv-accent"><td>Grand Total</td><td class="num">{{ report.grand_total|currency }}</td></tr>
+            <tr class="kv-separator"><td colspan="2"><span class="muted small">Liabilities are tracked separately and never subtracted from grand total.</span></td></tr>
+            <tr class="kv-emphasis"><td>Liabilities Total</td><td class="num">{{ report.liabilities_total|currency }}</td></tr>
+        </table>
+    </div>
+</section>
+
+<section class="detail-card detail-card-wide">
+    <div class="detail-card-header-row">
+        <h2>Account Breakdown <span class="muted small">({{ report.balances|length }} snapshot row{{ '' if report.balances|length == 1 else 's' }})</span></h2>
+        <span class="muted small">All balances are from this report&rsquo;s snapshot, not live account values.</span>
+    </div>
+
+    {% for key, title in group_meta %}
+        {% set hide_for_single = client.client_type == 'single' and key == 'client_2_retirement' %}
+        {% if not hide_for_single %}
+            {% set balances = groups[key] %}
+            {% if balances %}
+            <div class="report-group">
+                <div class="report-group-header">
+                    <h3 class="report-group-title">{{ title }}</h3>
+                    <span class="report-group-subtotal">{{ group_totals[key]|currency }}</span>
+                </div>
+                <table class="data-table data-table-compact">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Institution / nickname</th>
+                            <th>Owner</th>
+                            <th>Category</th>
+                            <th>Last 4</th>
+                            <th>Status</th>
+                            <th class="num">Balance at report</th>
+                            <th class="num">Cash at report</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for b in balances %}
+                        {% set a = b.account %}
+                        <tr>
+                            <td><strong>{{ a.account_type or 'Account' }}</strong></td>
+                            <td class="muted small">{{ a.institution_name or a.account_nickname or '—' }}</td>
+                            <td>{{ a.owner|owner_label }}</td>
+                            <td class="muted small">{{ a.category|replace('_', '-')|title }}</td>
+                            <td class="muted small">{{ ('x' ~ a.account_last_four) if a.account_last_four else '—' }}</td>
+                            <td><span class="status-badge status-{{ a.status }}">{{ a.status|status_label }}</span></td>
+                            <td class="num">{{ b.balance_at_report|currency }}</td>
+                            <td class="num muted">{{ b.cash_balance_at_report|currency if b.cash_balance_at_report is not none else '—' }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</section>
+
+<section class="review-footer-actions">
+    <form method="post" action="{{ url_for('reports.recalculate', report_id=report.id) }}" class="inline-form">
+        <button type="submit" class="btn btn-secondary">Recalculate Totals</button>
+    </form>
+    <a class="btn btn-link" href="{{ url_for('clients.show', client_id=client.id) }}">&larr; Back to client</a>
+</section>
+
+{% endblock %}

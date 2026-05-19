@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}TCC Preview &middot; {{ client.household_name }}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/report-tcc.css') }}">
+{% endblock %}
+{% block content %}
+
+<div class="report-print-bar">
+    <div>
+        <a class="btn btn-link" href="{{ url_for('reports.review', report_id=report.id) }}">&larr; Back to Calculation Review</a>
+    </div>
+    <div class="report-print-actions">
+        <a class="btn btn-primary" href="{{ url_for('reports.tcc_pdf', report_id=report.id) }}">Download PDF</a>
+        <button type="button" class="btn btn-secondary" onclick="window.print()">Print</button>
+        <a class="btn btn-secondary" href="{{ url_for('reports.sacs_preview', report_id=report.id) }}">Preview SACS</a>
+    </div>
+</div>
+
+<article class="tcc-page" role="document">
+
+    {# ── Header row: household | quarter | report date ─────────────────── #}
+    <header class="tcc-meta-row">
+        <div class="tcc-meta-name">
+            <span class="lbl">NAME</span>
+            <span class="val">{{ client.household_name }}</span>
+        </div>
+        <div class="tcc-meta-quarter">
+            <span class="lbl">QUARTER</span>
+            <span class="val">{{ report.quarter_label }}</span>
+        </div>
+        <div class="tcc-meta-date">
+            <span class="lbl">DATE</span>
+            <span class="val">{{ report.report_date|nice_date('%B %d, %Y') }}</span>
+        </div>
+    </header>
+
+    {# ── Top summary row: Grand Total + Liabilities ────────────────────── #}
+    <section class="tcc-summary-row">
+        <div class="tcc-summary-box">
+            <div class="label">Liabilities</div>
+            <div class="value">{{ report.liabilities_total|currency }}</div>
+            <div class="muted">a/o {{ report.report_date|nice_date('%m/%d/%Y') }}</div>
+        </div>
+        <div class="tcc-summary-box tcc-summary-grand">
+            <div class="label">Grand Total</div>
+            <div class="value">{{ report.grand_total|currency }}</div>
+            <div class="muted">{{ report.quarter_label }}</div>
+        </div>
+        <div class="tcc-summary-box tcc-summary-spacer"></div>
+    </section>
+
+    {# ── Per-client retirement totals ──────────────────────────────────── #}
+    <section class="tcc-retirement-totals">
+        <div class="tcc-rt-box">
+            <div class="label">Client 1 Retirement Only</div>
+            <div class="value">{{ report.client_1_retirement_total|currency }}</div>
+        </div>
+        {% if client.client_type == 'married' %}
+        <div class="tcc-rt-box">
+            <div class="label">Client 2 Retirement Only</div>
+            <div class="value">{{ report.client_2_retirement_total|currency }}</div>
+        </div>
+        {% endif %}
+    </section>
+
+    {# ── Clients + retirement bubbles ──────────────────────────────────── #}
+    <section class="tcc-clients">
+        {# Client 1 column #}
+        <div class="tcc-client-col">
+            {% if client_1 %}
+            <div class="tcc-client-bubble">
+                <div class="cb-name">{{ client_1.full_name }}</div>
+                <dl class="cb-meta">
+                    <dt>Age</dt><dd>{{ client_1.age }}</dd>
+                    <dt>DOB</dt><dd>{{ client_1.dob.strftime('%m/%d/%Y') }}</dd>
+                    <dt>SSN</dt><dd>x{{ client_1.ssn_last_four }}</dd>
+                </dl>
+            </div>
+            {% endif %}
+            <div class="tcc-bubbles-grid">
+                {% for bubble in groups['client_1_retirement'] %}
+                    {% include 'reports/_bubble.html' %}
+                {% else %}
+                <div class="tcc-empty">No Client 1 retirement accounts.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# Client 2 column (married only) #}
+        {% if client.client_type == 'married' %}
+        <div class="tcc-client-col">
+            {% if client_2 %}
+            <div class="tcc-client-bubble">
+                <div class="cb-name">{{ client_2.full_name }}</div>
+                <dl class="cb-meta">
+                    <dt>Age</dt><dd>{{ client_2.age }}</dd>
+                    <dt>DOB</dt><dd>{{ client_2.dob.strftime('%m/%d/%Y') }}</dd>
+                    <dt>SSN</dt><dd>x{{ client_2.ssn_last_four }}</dd>
+                </dl>
+            </div>
+            {% endif %}
+            <div class="tcc-bubbles-grid">
+                {% for bubble in groups['client_2_retirement'] %}
+                    {% include 'reports/_bubble.html' %}
+                {% else %}
+                <div class="tcc-empty">No Client 2 retirement accounts.</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    {# ── Trust section (centered) ──────────────────────────────────────── #}
+    {% if groups['trust'] %}
+    <section class="tcc-trust">
+        <div class="tcc-section-title">Trust</div>
+        <div class="tcc-trust-grid">
+            {% for bubble in groups['trust'] %}
+                {% include 'reports/_bubble.html' %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Non-retirement section ────────────────────────────────────────── #}
+    <section class="tcc-nonret">
+        <div class="tcc-section-head">
+            <div class="tcc-section-title">Non-Retirement</div>
+            <div class="tcc-section-subtotal">
+                <span class="label">Non-Retirement Total</span>
+                <span class="value">{{ report.non_retirement_total|currency }}</span>
+            </div>
+        </div>
+        <div class="tcc-bubbles-grid">
+            {% for bubble in groups['non_retirement'] %}
+                {% include 'reports/_bubble.html' %}
+            {% else %}
+            <div class="tcc-empty">No non-retirement accounts on file.</div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ── Liabilities section (tabular, since rate matters) ─────────────── #}
+    <section class="tcc-liabilities">
+        <div class="tcc-section-head">
+            <div class="tcc-section-title">Liabilities</div>
+            <div class="tcc-section-subtotal">
+                <span class="label">Liabilities Total</span>
+                <span class="value">{{ report.liabilities_total|currency }}</span>
+            </div>
+        </div>
+        {% if groups['liabilities'] %}
+        <table class="tcc-liab-table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Institution / nickname</th>
+                    <th>Last 4</th>
+                    <th class="num">Rate</th>
+                    <th class="num">Balance at report</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for bubble in groups['liabilities'] %}
+                {% set a = bubble.account %}
+                {% set is_stale = a.status in ('stale', 'missing') %}
+                <tr class="{% if is_stale %}is-stale{% endif %}">
+                    <td>{{ a.account_type or '—' }}</td>
+                    <td>{{ a.institution_name or a.account_nickname or '—' }}</td>
+                    <td class="muted">{% if a.account_last_four %}x{{ a.account_last_four }}{% else %}—{% endif %}</td>
+                    <td class="num">{% if a.interest_rate is not none %}{{ a.interest_rate|percent }}{% else %}—{% endif %}</td>
+                    <td class="num">{{ bubble.balance_at_report|currency }}{% if is_stale %}*{% endif %}</td>
+                    <td><span class="status-pip status-{{ a.status }}">{{ a.status|status_label }}</span></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="tcc-empty">No liabilities on file.</div>
+        {% endif %}
+        <p class="tcc-liab-note muted">
+            Liabilities are tracked separately and are <strong>not</strong> subtracted from Grand Total
+            ({{ report.grand_total|currency }} = Client 1 Retirement + Client 2 Retirement + Non-Retirement + Trust).
+        </p>
+    </section>
+
+    {# ── Stale footer ──────────────────────────────────────────────────── #}
+    {% if has_stale %}
+    <p class="tcc-stale-note">* Indicates we do not have up to date information</p>
+    {% endif %}
+
+    {# ── Warnings (subtle, only when present) ──────────────────────────── #}
+    {% if warnings %}
+    <aside class="tcc-warnings">
+        <strong>Report notes</strong>
+        <ul>
+        {% for w in warnings %}
+            <li class="warn-{{ w.level }}">{{ w.title }}</li>
+        {% endfor %}
+        </ul>
+    </aside>
+    {% endif %}
+
+    <p class="tcc-footer-meta">
+        {{ client.household_name }} &middot; {{ report.quarter_label }} &middot; Generated {{ report.created_at|nice_date('%B %d, %Y') }}
+    </p>
+</article>
+
+{% endblock %}

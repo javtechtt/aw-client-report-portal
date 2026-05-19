@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ client.household_name }} &middot; AW Client Report Portal{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>Edit Household</h1>
+        <p class="muted">{{ client.household_name }}</p>
+    </div>
+</section>
+
+{% if errors %}
+<div class="flash flash-error" role="alert">
+    Please correct the {{ errors|length }} issue{{ '' if errors|length == 1 else 's' }} below before saving.
+</div>
+{% endif %}
+
+{% set submit_url = url_for('clients.edit', client_id=client.id) %}
+{% set submit_label = 'Save Changes' %}
+{% set cancel_url = url_for('clients.show', client_id=client.id) %}
+{% include 'clients/_form.html' %}
+{% endblock %}

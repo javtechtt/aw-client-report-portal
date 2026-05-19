@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}PDF unavailable &middot; AW Client Report Portal{% endblock %}
+{% block content %}
+<section class="placeholder-card pdf-unavailable">
+    <span class="placeholder-phase pdf-unavailable-tag">PDF offline</span>
+    <h1>Server-side {{ kind }} PDF is unavailable on this machine</h1>
+    <p class="muted">
+        WeasyPrint depends on the GTK runtime libraries (gobject, pango, cairo,
+        gdk-pixbuf). They&rsquo;re bundled into the Railway production image,
+        but the local Windows dev environment doesn&rsquo;t have them by default.
+    </p>
+
+    <p class="muted small pdf-error-detail">
+        <strong>Detail:</strong> {{ detail }}
+    </p>
+
+    <p>Use one of these alternatives:</p>
+    <ul class="pdf-fallback-actions">
+        <li>
+            <a class="btn btn-primary" href="{{ url_for('reports.' ~ ('sacs_preview' if kind == 'SACS' else 'tcc_preview'), report_id=report.id) }}">
+                Open the {{ kind }} preview &amp; use browser print
+            </a>
+            <span class="muted small">Chromium &rarr; &ldquo;Save as PDF&rdquo; renders the same template.</span>
+        </li>
+        <li>
+            <a class="btn btn-secondary" href="{{ url_for('reports.review', report_id=report.id) }}">
+                Back to Calculation Review
+            </a>
+        </li>
+    </ul>
+
+    <details class="pdf-install-hint">
+        <summary>Install GTK on Windows</summary>
+        <ol>
+            <li>Download the GTK3 Runtime installer from <em>github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer</em>.</li>
+            <li>Install and add the GTK <code>bin</code> folder to <code>PATH</code>.</li>
+            <li>Restart the Flask server. Confirm with: <code>python -c "import weasyprint; weasyprint.HTML(string='').write_pdf()"</code></li>
+        </ol>
+        <p class="muted small">On Linux: <code>apt-get install libcairo2 libpango-1.0-0 libgdk-pixbuf-2.0-0</code></p>
+    </details>
+</section>
+{% endblock %}

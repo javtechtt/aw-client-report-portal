@@ -1,0 +1,117 @@
+<form method="post" action="{{ submit_url }}" class="account-form" data-client-type="{{ client.client_type }}" novalidate>
+
+    <section class="form-section">
+        <h2>Account Details</h2>
+
+        <div class="form-row form-row-2col">
+            <fieldset class="form-field">
+                <legend>Category <em>*</em></legend>
+                {% for cat, label in [('retirement', 'Retirement'), ('non_retirement', 'Non-Retirement'), ('trust', 'Trust'), ('liability', 'Liability')] %}
+                <label class="radio">
+                    <input type="radio" name="category" value="{{ cat }}" data-category {% if form.get('category') == cat %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+                {% endfor %}
+                {% if errors.get('category') %}<span class="field-error">{{ errors.get('category') }}</span>{% endif %}
+            </fieldset>
+
+            <fieldset class="form-field">
+                <legend>Owner <em>*</em></legend>
+                {% for own, label in [('client_1', 'Client 1'), ('client_2', 'Client 2'), ('joint', 'Joint'), ('trust', 'Trust')] %}
+                <label class="radio" data-owner-option="{{ own }}">
+                    <input type="radio" name="owner" value="{{ own }}" {% if form.get('owner') == own %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+                {% endfor %}
+                {% if errors.get('owner') %}<span class="field-error">{{ errors.get('owner') }}</span>{% endif %}
+            </fieldset>
+        </div>
+
+        <div class="form-row form-row-3col">
+            <label class="form-field">
+                <span>Account type <em>*</em></span>
+                <select name="account_type" required>
+                    <option value="">Select…</option>
+                    {% for t in account_types %}
+                    <option value="{{ t }}" {% if form.get('account_type') == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+                {% if errors.get('account_type') %}<span class="field-error">{{ errors.get('account_type') }}</span>{% endif %}
+            </label>
+
+            <label class="form-field">
+                <span>Institution name</span>
+                <input type="text" name="institution_name" value="{{ form.get('institution_name', '') }}" placeholder="e.g. Charles Schwab">
+                {% if errors.get('institution_name') %}<span class="field-error">{{ errors.get('institution_name') }}</span>{% endif %}
+            </label>
+
+            <label class="form-field">
+                <span>Account nickname</span>
+                <input type="text" name="account_nickname" value="{{ form.get('account_nickname', '') }}" placeholder="e.g. Main Checking">
+            </label>
+        </div>
+
+        <div class="form-row form-row-3col">
+            <label class="form-field">
+                <span>Account last 4</span>
+                <input type="text" name="account_last_four" value="{{ form.get('account_last_four', '') }}" pattern="\d{4}" maxlength="4" minlength="4" inputmode="numeric" placeholder="0000">
+                {% if errors.get('account_last_four') %}<span class="field-error">{{ errors.get('account_last_four') }}</span>{% endif %}
+            </label>
+
+            <label class="form-field">
+                <span>Date updated</span>
+                <input type="date" name="date_updated" value="{{ form.get('date_updated', '') }}" max="{{ today_iso }}">
+                {% if errors.get('date_updated') %}<span class="field-error">{{ errors.get('date_updated') }}</span>{% endif %}
+            </label>
+
+            <fieldset class="form-field">
+                <legend>Status <em>*</em></legend>
+                {% for st, label in [('up_to_date', 'Up to date'), ('stale', 'Stale'), ('missing', 'Missing')] %}
+                <label class="radio">
+                    <input type="radio" name="status" value="{{ st }}" {% if form.get('status') == st %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+                {% endfor %}
+                {% if errors.get('status') %}<span class="field-error">{{ errors.get('status') }}</span>{% endif %}
+            </fieldset>
+        </div>
+    </section>
+
+    <section class="form-section">
+        <h2>Balance</h2>
+        <div class="form-row form-row-3col">
+            <label class="form-field">
+                <span>Balance <em>*</em></span>
+                <span class="input-prefix">
+                    <span class="prefix">$</span>
+                    <input type="number" name="balance" value="{{ form.get('balance', '') }}" step="0.01" min="0" required placeholder="0.00">
+                </span>
+                {% if errors.get('balance') %}<span class="field-error">{{ errors.get('balance') }}</span>{% endif %}
+            </label>
+
+            <label class="form-field" data-field="cash_balance">
+                <span>Cash balance <span class="muted small">(investment accounts)</span></span>
+                <span class="input-prefix">
+                    <span class="prefix">$</span>
+                    <input type="number" name="cash_balance" value="{{ form.get('cash_balance', '') }}" step="0.01" min="0" placeholder="0.00">
+                </span>
+                {% if errors.get('cash_balance') %}<span class="field-error">{{ errors.get('cash_balance') }}</span>{% endif %}
+            </label>
+
+            <label class="form-field" data-field="interest_rate">
+                <span>Interest rate <span class="muted small">(liabilities)</span></span>
+                <span class="input-prefix">
+                    <input type="number" name="interest_rate" value="{{ form.get('interest_rate', '') }}" step="0.0001" min="0" placeholder="0.0625">
+                    <span class="suffix">decimal (0.0625 = 6.25%)</span>
+                </span>
+                {% if errors.get('interest_rate') %}<span class="field-error">{{ errors.get('interest_rate') }}</span>{% endif %}
+            </label>
+        </div>
+    </section>
+
+    <div class="form-actions">
+        <a class="btn btn-secondary" href="{{ cancel_url }}">Cancel</a>
+        <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+    </div>
+</form>
+<script src="{{ url_for('static', filename='js/accounts.js') }}" defer></script>

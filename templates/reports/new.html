@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}New Quarterly Report &middot; {{ client.household_name }}{% endblock %}
+{% block content %}
+
+<section class="page-head">
+    <div>
+        <h1>New Quarterly Report</h1>
+        <p class="muted">
+            <a class="cell-link" href="{{ url_for('clients.show', client_id=client.id) }}">{{ client.household_name }}</a>
+            &middot; <span class="pill pill-{{ client.client_type }}">{{ client.client_type|title }}</span>
+            {% if previous_report %}
+                &middot; Previous: {{ previous_label }} ({{ previous_report.report_date.strftime('%b %d, %Y') }})
+            {% else %}
+                &middot; <span class="muted">No previous report</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-secondary" href="{{ url_for('clients.show', client_id=client.id) }}">Cancel</a>
+    </div>
+</section>
+
+{% if errors %}
+<div class="flash flash-error" role="alert">
+    Please correct the {{ errors|length }} issue{{ '' if errors|length == 1 else 's' }} below before saving.
+</div>
+{% endif %}
+
+{% if errors.get('sacs_static') %}
+<div class="flash flash-error" role="alert">
+    {{ errors.sacs_static }}
+    <a class="btn btn-link" href="{{ url_for('clients.edit', client_id=client.id) }}">Edit client &rarr;</a>
+</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('reports.new', client_id=client.id) }}" class="report-entry-form" novalidate>
+
+    <section class="form-section card-section">
+        <h2>1. Report Setup</h2>
+        <div class="form-row form-row-2col">
+            <label class="form-field">
+                <span>Report date <em>*</em></span>
+                <input type="date" name="report_date" value="{{ form.get('report_date', '') }}" max="{{ today_iso }}" required>
+                {% if errors.get('report_date') %}<span class="field-error">{{ errors.get('report_date') }}</span>{% endif %}
+            </label>
+            <label class="form-field">
+                <span>Quarter label <em>*</em></span>
+                <input type="text" name="quarter_label" value="{{ form.get('quarter_label', '') }}" placeholder="Q1 2026" required>
+                {% if errors.get('quarter_label') %}<span class="field-error">{{ errors.get('quarter_label') }}</span>{% endif %}
+            </label>
+        </div>
+    </section>
+
+    <section class="form-section card-section">
+        <div class="section-head-row">
+            <h2>2. Client Summary</h2>
+            <a class="btn btn-link" href="{{ url_for('clients.edit', client_id=client.id) }}">Edit client &rarr;</a>
+        </div>
+
+        <div class="stat-grid">
+            {% for p in client.persons %}
+            <div class="stat">
+                <dt>{{ 'Client 1' if p.role == 'client_1' else 'Client 2' }}</dt>
+                <dd>{{ p.full_name }}</dd>
+                <span class="muted small">age {{ p.age }}</span>
+            </div>
+            {% endfor %}
+            {% set s = client.sacs_static %}
+            {% if s %}
+            <div class="stat">
+                <dt>Client 1 salary</dt>
+                <dd>${{ '{:,.2f}'.format(s.client_1_monthly_salary) }}</dd>
+            </div>
+            {% if client.client_type == 'married' %}
+            <div class="stat">
+                <dt>Client 2 salary</dt>
+                <dd>{% if s.client_2_monthly_salary is not none %}${{ '{:,.2f}'.format(s.client_2_monthly_salary) }}{% else %}—{% endif %}</dd>
+            </div>
+            {% endif %}
+            <div class="stat">
+                <dt>Total inflow (est.)</dt>
+                <dd>${{ '{:,.2f}'.format((s.client_1_monthly_salary or 0) + (s.client_2_monthly_salary or 0)) }}</dd>
+            </div>
+            <div class="stat">
+                <dt>Monthly outflow</dt>
+                <dd>${{ '{:,.2f}'.format(s.monthly_outflow_budget) }}</dd>
+            </div>
+            <div class="stat">
+                <dt>Insurance deductibles</dt>
+                <dd>${{ '{:,.2f}'.format(s.insurance_deductibles_total) }}</dd>
+            </div>
+            <div class="stat">
+                <dt>Floor amount</dt>
+                <dd>${{ '{:,.2f}'.format(s.floor_amount) }}</dd>
+            </div>
+            <div class="stat stat-accent">
+                <dt>Private reserve target</dt>
+                <dd>${{ '{:,.2f}'.format(s.private_reserve_target) }}</dd>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="form-section card-section">
+        <h2>3. Account Balance Entry</h2>
+        <p class="muted small section-hint">Enter current balance, optional cash balance, the date this number was sourced, and the data-quality status for each account.</p>
+
+        {% set group_meta = [
+            ('client_1_retirement', 'Client 1 Retirement'),
+            ('client_2_retirement', 'Client 2 Retirement'),
+            ('non_retirement',      'Non-Retirement'),
+            ('trust',               'Trust'),
+            ('liabilities',         'Liabilities'),
+        ] %}
+        {% for key, title in group_meta %}
+            {% set hide_for_single = client.client_type == 'single' and key == 'client_2_retirement' %}
+            {% if not hide_for_single %}
+                {% set accounts = groups[key] %}
+                {% if accounts %}
+                <div class="report-group">
+                    <h3 class="report-group-title">{{ title }}</h3>
+                    {% for account in accounts %}
+                        {% set prev = previous_balances.get(account.id) %}
+                        {% set has_error_balance = errors.get('account_' ~ account.id ~ '_balance') %}
+                        {% set has_error_cash = errors.get('account_' ~ account.id ~ '_cash_balance') %}
+                        {% set has_error_date = errors.get('account_' ~ account.id ~ '_date_updated') %}
+                        {% set has_error_status = errors.get('account_' ~ account.id ~ '_status') %}
+                        {% set has_any_error = has_error_balance or has_error_cash or has_error_date or has_error_status %}
+                        <div class="report-account-row {% if has_any_error %}has-error{% endif %}">
+                            <div class="report-account-head">
+                                <div>
+                                    <strong>{{ account.account_type or 'Account' }}</strong>
+                                    {% if account.account_last_four %}<span class="muted small">x{{ account.account_last_four }}</span>{% endif %}
+                                    <div class="muted small">
+                                        {{ account.institution_name or account.account_nickname or '—' }}
+                                        &middot; {{ {'client_1': 'Client 1', 'client_2': 'Client 2', 'joint': 'Joint', 'trust': 'Trust'}[account.owner] }}
+                                    </div>
+                                </div>
+                                <div class="report-account-prev">
+                                    {% if prev %}
+                                        <div class="muted small">
+                                            Previous{% if previous_label %} ({{ previous_label }}){% endif %}:
+                                            <strong>${{ '{:,.2f}'.format(prev.balance_at_report) }}</strong>
+                                            {% if prev.cash_balance_at_report is not none %}
+                                                + ${{ '{:,.2f}'.format(prev.cash_balance_at_report) }} cash
+                                            {% endif %}
+                                        </div>
+                                        <button type="button" class="btn btn-link btn-sm"
+                                                data-fill-target="account_{{ account.id }}_balance"
+                                                data-fill-value="{{ '{:.2f}'.format(prev.balance_at_report) }}"
+                                                {% if prev.cash_balance_at_report is not none %}
+                                                  data-fill-cash-target="account_{{ account.id }}_cash_balance"
+                                                  data-fill-cash-value="{{ '{:.2f}'.format(prev.cash_balance_at_report) }}"
+                                                {% endif %}
+                                                >Use previous value</button>
+                                    {% else %}
+                                        <span class="muted small">No previous report value</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="report-account-inputs">
+                                <label class="form-field">
+                                    <span>Balance <em>*</em></span>
+                                    <span class="input-prefix">
+                                        <span class="prefix">$</span>
+                                        <input type="number" name="account_{{ account.id }}_balance"
+                                               value="{{ form.get('account_' ~ account.id ~ '_balance', '') }}"
+                                               step="0.01" min="0" required placeholder="0.00">
+                                    </span>
+                                    {% if has_error_balance %}<span class="field-error">{{ has_error_balance }}</span>{% endif %}
+                                </label>
+
+                                <label class="form-field">
+                                    <span>Cash balance <span class="muted small">(optional)</span></span>
+                                    <span class="input-prefix">
+                                        <span class="prefix">$</span>
+                                        <input type="number" name="account_{{ account.id }}_cash_balance"
+                                               value="{{ form.get('account_' ~ account.id ~ '_cash_balance', '') }}"
+                                               step="0.01" min="0" placeholder="0.00">
+                                    </span>
+                                    {% if has_error_cash %}<span class="field-error">{{ has_error_cash }}</span>{% endif %}
+                                </label>
+
+                                <label class="form-field">
+                                    <span>Date updated</span>
+                                    <input type="date" name="account_{{ account.id }}_date_updated"
+                                           value="{{ form.get('account_' ~ account.id ~ '_date_updated', '') }}"
+                                           max="{{ today_iso }}">
+                                    {% if has_error_date %}<span class="field-error">{{ has_error_date }}</span>{% endif %}
+                                </label>
+
+                                <fieldset class="form-field">
+                                    <legend>Status <em>*</em></legend>
+                                    {% for st, lbl in [('up_to_date', 'Up to date'), ('stale', 'Stale'), ('missing', 'Missing')] %}
+                                    <label class="radio">
+                                        <input type="radio" name="account_{{ account.id }}_status" value="{{ st }}"
+                                               {% if form.get('account_' ~ account.id ~ '_status') == st %}checked{% endif %}>
+                                        <span>{{ lbl }}</span>
+                                    </label>
+                                    {% endfor %}
+                                    {% if has_error_status %}<span class="field-error">{{ has_error_status }}</span>{% endif %}
+                                </fieldset>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    </section>
+
+    <div class="form-actions sticky-actions">
+        <a class="btn btn-secondary" href="{{ url_for('clients.show', client_id=client.id) }}">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create Quarterly Report Snapshot</button>
+    </div>
+</form>
+
+<script src="{{ url_for('static', filename='js/reports.js') }}" defer></script>
+{% endblock %}

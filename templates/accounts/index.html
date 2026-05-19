@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Accounts — {{ client.household_name }}{% endblock %}
+{% block content %}
+
+<section class="page-head">
+    <div>
+        <h1>Manage Accounts</h1>
+        <p class="muted">
+            <a class="cell-link" href="{{ url_for('clients.show', client_id=client.id) }}">{{ client.household_name }}</a>
+            &middot; <span class="pill pill-{{ client.client_type }}">{{ client.client_type|title }}</span>
+            {% for p in client.persons %}
+                &middot; {{ 'Client 1' if p.role == 'client_1' else 'Client 2' }}: {{ p.full_name }}
+            {% endfor %}
+        </p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-secondary" href="{{ url_for('clients.show', client_id=client.id) }}">&larr; Back to client</a>
+        <a class="btn btn-primary" href="#add-account-form">+ Add Account</a>
+    </div>
+</section>
+
+{% set group_meta = [
+    ('client_1_retirement', 'Client 1 Retirement'),
+    ('client_2_retirement', 'Client 2 Retirement'),
+    ('non_retirement',      'Non-Retirement'),
+    ('trust',               'Trust'),
+    ('liabilities',         'Liabilities'),
+] %}
+
+{% set total_accounts = client.accounts|length %}
+{% if total_accounts == 0 %}
+<div class="empty-state">
+    <p>No accounts yet. Add the first one below.</p>
+</div>
+{% else %}
+
+{% for key, title in group_meta %}
+    {% set hide_for_single = client.client_type == 'single' and key == 'client_2_retirement' %}
+    {% if not hide_for_single %}
+        {% set accounts = groups[key] %}
+        {% if accounts %}
+        <section class="account-group">
+            <header class="account-group-head">
+                <h2>{{ title }}</h2>
+                <div class="account-group-meta">
+                    <span class="muted small">{{ accounts|length }} account{{ '' if accounts|length == 1 else 's' }}</span>
+                    <span class="account-group-total">${{ '{:,.2f}'.format(totals[key]) }}</span>
+                </div>
+            </header>
+            <div class="account-card-grid">
+                {% for account in accounts %}
+                    {% include "accounts/_card.html" %}
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    {% endif %}
+{% endfor %}
+
+{% endif %}
+
+<section class="add-account-section" id="add-account-form">
+    <h2 class="add-account-heading">Add New Account</h2>
+    {% if errors %}
+    <div class="flash flash-error" role="alert">
+        Please correct the {{ errors|length }} issue{{ '' if errors|length == 1 else 's' }} below before saving.
+    </div>
+    {% endif %}
+    {% set submit_url = url_for('accounts.index', client_id=client.id) %}
+    {% set submit_label = 'Add Account' %}
+    {% set cancel_url = url_for('accounts.index', client_id=client.id) %}
+    {% set account_types = ['IRA', 'Roth IRA', '401K', 'Pension', 'Brokerage', 'Checking', 'Savings', 'Money Market', 'Trust Property', 'Mortgage', 'Auto Loan', 'Other'] %}
+    {% include 'accounts/_form.html' %}
+</section>
+
+{% endblock %}

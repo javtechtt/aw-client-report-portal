@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Edit Account — {{ client.household_name }}{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>Edit Account</h1>
+        <p class="muted">
+            <a class="cell-link" href="{{ url_for('clients.show', client_id=client.id) }}">{{ client.household_name }}</a>
+            &middot; {{ account.account_type or 'Account' }}{% if account.account_last_four %} <span class="muted small">x{{ account.account_last_four }}</span>{% endif %}
+        </p>
+    </div>
+</section>
+
+{% if errors %}
+<div class="flash flash-error" role="alert">
+    Please correct the {{ errors|length }} issue{{ '' if errors|length == 1 else 's' }} below before saving.
+</div>
+{% endif %}
+
+{% set submit_url = url_for('accounts.edit', account_id=account.id) %}
+{% set submit_label = 'Save Changes' %}
+{% set cancel_url = url_for('accounts.index', client_id=client.id) %}
+{% set account_types = ['IRA', 'Roth IRA', '401K', 'Pension', 'Brokerage', 'Checking', 'Savings', 'Money Market', 'Trust Property', 'Mortgage', 'Auto Loan', 'Other'] %}
+{% include 'accounts/_form.html' %}
+
+<div class="form-secondary-actions">
+    <form method="post" action="{{ url_for('accounts.delete', account_id=account.id) }}" class="inline-form"
+          onsubmit="return confirm('Delete this account permanently? This cannot be undone.');">
+        <button type="submit" class="btn btn-link btn-danger">Delete this account</button>
+    </form>
+</div>
+{% endblock %}

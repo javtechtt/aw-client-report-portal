@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Report History &middot; AW Client Report Portal{% endblock %}
+{% block content %}
+
+<section class="page-head">
+    <div>
+        <h1>Report History</h1>
+        <p class="muted">{{ reports|length }} quarterly report{{ '' if reports|length == 1 else 's' }}{% if filter_client_id or filter_quarter %} (filtered){% endif %}</p>
+    </div>
+</section>
+
+<form method="get" action="{{ url_for('reports.history') }}" class="history-filters">
+    <label class="form-field">
+        <span>Household</span>
+        <select name="client_id">
+            <option value="">All households</option>
+            {% for c in clients %}
+            <option value="{{ c.id }}" {% if filter_client_id == c.id %}selected{% endif %}>{{ c.household_name }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label class="form-field">
+        <span>Quarter contains</span>
+        <input type="text" name="quarter" value="{{ filter_quarter }}" placeholder="e.g. Q2 2026">
+    </label>
+    <div class="form-field history-filter-actions">
+        <span>&nbsp;</span>
+        <div>
+            <button type="submit" class="btn btn-primary">Apply</button>
+            <a class="btn btn-secondary" href="{{ url_for('reports.history') }}">Clear</a>
+        </div>
+    </div>
+</form>
+
+{% if reports %}
+<table class="data-table data-table-compact">
+    <thead>
+        <tr>
+            <th>Household</th>
+            <th>Type</th>
+            <th>Quarter</th>
+            <th>Report date</th>
+            <th>Created</th>
+            <th class="num">Grand total</th>
+            <th class="num">Liabilities</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for r in reports %}
+        <tr>
+            <td>
+                <a class="cell-link" href="{{ url_for('clients.show', client_id=r.client.id) }}">
+                    <strong>{{ r.client.household_name }}</strong>
+                </a>
+            </td>
+            <td><span class="pill pill-{{ r.client.client_type }}">{{ r.client.client_type|title }}</span></td>
+            <td><strong>{{ r.quarter_label }}</strong></td>
+            <td>{{ r.report_date|nice_date }}</td>
+            <td class="muted small">{{ r.created_at|nice_date }}</td>
+            <td class="num">{{ r.grand_total|currency }}</td>
+            <td class="num muted">{{ r.liabilities_total|currency }}</td>
+            <td class="row-actions">
+                <a class="btn btn-link" href="{{ url_for('reports.review', report_id=r.id) }}">Review</a>
+                <a class="btn btn-link" href="{{ url_for('reports.sacs_preview', report_id=r.id) }}">SACS</a>
+                <a class="btn btn-link" href="{{ url_for('reports.tcc_preview', report_id=r.id) }}">TCC</a>
+                {% if pdf_available %}
+                <a class="btn btn-link" href="{{ url_for('reports.sacs_pdf', report_id=r.id) }}">SACS PDF</a>
+                <a class="btn btn-link" href="{{ url_for('reports.tcc_pdf', report_id=r.id) }}">TCC PDF</a>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% if not pdf_available %}
+<p class="muted small history-pdf-note">
+    PDF download links are hidden — WeasyPrint is not loaded on this machine.
+    Open the SACS or TCC preview and use the browser&rsquo;s &ldquo;Print / Save as PDF&rdquo; instead.
+</p>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <p>No reports yet{% if filter_client_id or filter_quarter %} matching this filter{% endif %}.</p>
+    <a class="btn btn-secondary" href="{{ url_for('dashboard.index') }}">Back to dashboard</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,173 @@
+/* SACS report — shared by browser preview and (Phase 8) PDF export.
+   The browser wraps .sacs-page in a paper-style shadow; print/PDF
+   uses @page rules instead, so the .sacs-page itself contains no
+   margins or boxing of its own. */
+
+/* ── Screen wrapper (the bar above the report) ─────────────────────────── */
+.report-print-bar {
+    max-width: 8.5in;
+    margin: 0 auto 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.report-print-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.report-print-actions .disabled {
+    opacity: 0.55;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+/* ── The SACS page itself ──────────────────────────────────────────────── */
+.sacs-page {
+    width: 8.5in;
+    min-height: 11in;
+    margin: 0 auto;
+    padding: 0.6in 0.7in;
+    background: white;
+    box-sizing: border-box;
+    box-shadow: 0 4px 20px rgba(16, 24, 40, 0.10);
+    color: #101828;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+.sacs-header {
+    text-align: center;
+    border-bottom: 2px solid #1f3a5f;
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+}
+.sacs-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1f3a5f;
+    letter-spacing: -0.01em;
+}
+.sacs-subtitle {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: #475467;
+}
+.sacs-subtitle .dot { color: #d8dde6; margin: 0 4px; }
+
+/* ── Warnings strip (subtle on the report itself) ─────────────────────── */
+.sacs-warnings {
+    background: #fef9c3;
+    border: 1px solid #facc15;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 0 0 16px;
+    font-size: 12px;
+    color: #713f12;
+}
+.sacs-warnings ul { margin: 6px 0 0; padding-left: 20px; }
+.sacs-warnings li.warn-error   { color: #991b1b; }
+.sacs-warnings li.warn-warning { color: #92400e; }
+.sacs-warnings li.warn-info    { color: #1e40af; }
+
+/* ── Diagram frame ─────────────────────────────────────────────────────── */
+.sacs-diagram-wrap {
+    margin: 0 auto;
+    padding: 0;
+    max-width: 100%;
+}
+.sacs-diagram {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 7in;
+}
+
+/* SVG text inherits the page font stack via the root .sacs-page rule above. */
+.sacs-diagram text { font-family: inherit; }
+
+/* ── Legend ───────────────────────────────────────────────────────────── */
+.sacs-legend {
+    border-top: 1px solid #d8dde6;
+    margin-top: 24px;
+    padding-top: 16px;
+    font-size: 12px;
+    color: #475467;
+    line-height: 1.55;
+}
+.sacs-legend h2 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1f3a5f;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.sacs-legend ul {
+    margin: 0; padding-left: 20px;
+}
+.sacs-legend li { margin-bottom: 4px; }
+.sacs-legend li.warn { color: #b91c1c; }
+.sacs-legend .sacs-footer-meta {
+    margin: 16px 0 0;
+    font-size: 11px;
+    color: #98a2b3;
+    text-align: center;
+}
+
+/* ── Print / PDF rules ─────────────────────────────────────────────────── */
+@page {
+    size: letter;
+    margin: 0.5in;
+}
+
+@media print {
+    /* Hide everything that isn't the report content. */
+    .site-header,
+    .site-footer,
+    .report-print-bar,
+    .flash-stack { display: none !important; }
+
+    /* Strip the portal page chrome. */
+    body { background: white !important; }
+    main.container,
+    .container {
+        max-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* The .sacs-page itself becomes the page — @page handles margins. */
+    .sacs-page {
+        width: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: 0 !important;
+    }
+
+    /* Don't let the diagram split across pages. */
+    .sacs-diagram-wrap,
+    .sacs-diagram { page-break-inside: avoid; break-inside: avoid; }
+
+    /* Keep accent colors when printing (Chromium prefers this hint). */
+    .sacs-warnings,
+    .sacs-diagram,
+    .bubble-inflow circle,
+    .bubble-outflow circle,
+    .bubble-reserve circle {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* Defensive: long household names mustn't push the subtitle to multiple
+   ugly lines. Allow wrap but cap to two visually balanced lines. */
+.sacs-subtitle {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}

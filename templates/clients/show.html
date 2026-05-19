@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}{{ client.household_name }} &middot; AW Client Report Portal{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>{{ client.household_name }}</h1>
+        <p class="muted">
+            <span class="pill pill-{{ client.client_type }}">{{ client.client_type|title }}</span>
+            &middot; Created {{ client.created_at.strftime('%b %d, %Y') }}
+            &middot; Updated {{ client.updated_at.strftime('%b %d, %Y') }}
+        </p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-primary" href="{{ url_for('reports.new', client_id=client.id) }}">+ Create Quarterly Report</a>
+        <a class="btn btn-secondary" href="{{ url_for('accounts.index', client_id=client.id) }}">Manage Accounts</a>
+        <a class="btn btn-secondary" href="{{ url_for('clients.edit', client_id=client.id) }}">Edit Client</a>
+    </div>
+</section>
+
+<div class="detail-grid">
+    {% for person in client.persons %}
+    <section class="detail-card">
+        <h2>{{ 'Client 1' if person.role == 'client_1' else 'Client 2' }}</h2>
+        <dl class="detail-list">
+            <dt>Name</dt>
+            <dd>{{ person.full_name }}</dd>
+            <dt>Date of birth</dt>
+            <dd>{{ person.dob.strftime('%B %d, %Y') }} <span class="muted">&middot; age {{ person.age }}</span></dd>
+            <dt>SSN (last 4)</dt>
+            <dd>{{ person.ssn_last_four if person.ssn_last_four else '—' }}</dd>
+        </dl>
+    </section>
+    {% endfor %}
+</div>
+
+<section class="detail-card detail-card-wide">
+    <div class="detail-card-header-row">
+        <h2>Accounts <span class="muted small">({{ client.accounts|length }})</span></h2>
+        <a class="btn btn-link" href="{{ url_for('accounts.index', client_id=client.id) }}">Manage accounts &rarr;</a>
+    </div>
+    {% if client.accounts %}
+    <div class="stat-grid">
+        {% set group_meta = [
+            ('client_1_retirement', 'Client 1 Retirement'),
+            ('client_2_retirement', 'Client 2 Retirement'),
+            ('non_retirement',      'Non-Retirement'),
+            ('trust',               'Trust'),
+            ('liabilities',         'Liabilities'),
+        ] %}
+        {% for key, title in group_meta %}
+            {% if not (client.client_type == 'single' and key == 'client_2_retirement') %}
+            <div class="stat">
+                <dt>{{ title }}</dt>
+                <dd>${{ '{:,.2f}'.format(totals[key]) }}</dd>
+                <span class="muted small">{{ groups[key]|length }} account{{ '' if groups[key]|length == 1 else 's' }}</span>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">No accounts on file yet. <a href="{{ url_for('accounts.index', client_id=client.id) }}">Add the first account</a>.</p>
+    {% endif %}
+</section>
+
+{% if client.sacs_static %}
+{% set s = client.sacs_static %}
+<section class="detail-card detail-card-wide">
+    <h2>SACS Financial Setup</h2>
+    <div class="stat-grid">
+        <div class="stat">
+            <dt>Client 1 monthly salary</dt>
+            <dd>${{ '{:,.2f}'.format(s.client_1_monthly_salary) }}</dd>
+        </div>
+        {% if client.client_type == 'married' %}
+        <div class="stat">
+            <dt>Client 2 monthly salary</dt>
+            <dd>{% if s.client_2_monthly_salary is not none %}${{ '{:,.2f}'.format(s.client_2_monthly_salary) }}{% else %}—{% endif %}</dd>
+        </div>
+        {% endif %}
+        <div class="stat">
+            <dt>Monthly outflow budget</dt>
+            <dd>${{ '{:,.2f}'.format(s.monthly_outflow_budget) }}</dd>
+        </div>
+        <div class="stat">
+            <dt>Insurance deductibles total</dt>
+            <dd>${{ '{:,.2f}'.format(s.insurance_deductibles_total) }}</dd>
+        </div>
+        <div class="stat">
+            <dt>Floor amount</dt>
+            <dd>${{ '{:,.2f}'.format(s.floor_amount) }}</dd>
+        </div>
+        <div class="stat stat-accent">
+            <dt>Private reserve target</dt>
+            <dd>${{ '{:,.2f}'.format(s.private_reserve_target) }}</dd>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<section class="detail-card detail-card-wide">
+    <div class="detail-card-header-row">
+        <h2>Quarterly Reports <span class="muted small">({{ client.reports|length }})</span></h2>
+        <a class="btn btn-link" href="{{ url_for('reports.new', client_id=client.id) }}">+ Create new report</a>
+    </div>
+    {% if client.reports %}
+    <table class="data-table data-table-compact">
+        <thead>
+            <tr>
+                <th>Quarter</th>
+                <th>Report date</th>
+                <th class="num">Grand total</th>
+                <th class="num">Liabilities</th>
+                <th class="num">Excess transfer</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in client.reports[:5] %}
+            <tr>
+                <td><strong>{{ r.quarter_label }}</strong></td>
+                <td>{{ r.report_date|nice_date }}</td>
+                <td class="num">{{ r.grand_total|currency }}</td>
+                <td class="num muted">{{ r.liabilities_total|currency }}</td>
+                <td class="num">{{ r.excess_transfer|currency }}</td>
+                <td class="row-actions">
+                    <a class="btn btn-link" href="{{ url_for('reports.review', report_id=r.id) }}">Review</a>
+                    <a class="btn btn-link" href="{{ url_for('reports.sacs_preview', report_id=r.id) }}">SACS</a>
+                    <a class="btn btn-link" href="{{ url_for('reports.tcc_preview', report_id=r.id) }}">TCC</a>
+                    <a class="btn btn-link" href="{{ url_for('reports.sacs_pdf', report_id=r.id) }}">SACS PDF</a>
+                    <a class="btn btn-link" href="{{ url_for('reports.tcc_pdf', report_id=r.id) }}">TCC PDF</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted">No reports yet. <a href="{{ url_for('reports.new', client_id=client.id) }}">Create the first quarterly report</a>.</p>
+    {% endif %}
+</section>
+
+<div class="detail-footer">
+    <a class="btn btn-link" href="{{ url_for('dashboard.index') }}">&larr; Back to dashboard</a>
+</div>
+{% endblock %}

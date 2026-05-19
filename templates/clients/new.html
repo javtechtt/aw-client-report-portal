@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}New Household &middot; AW Client Report Portal{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>New Household</h1>
+        <p class="muted">Set up a client record once; quarterly reports will reuse this profile.</p>
+    </div>
+</section>
+
+{% if errors %}
+<div class="flash flash-error" role="alert">
+    Please correct the {{ errors|length }} issue{{ '' if errors|length == 1 else 's' }} below before saving.
+</div>
+{% endif %}
+
+{% set submit_url = url_for('clients.new') %}
+{% set submit_label = 'Create Household' %}
+{% set cancel_url = url_for('dashboard.index') %}
+{% include 'clients/_form.html' %}
+{% endblock %}

@@ -1,0 +1,29 @@
+{# Reusable TCC account bubble. Consumed from tcc.html for every account
+   in every region (retirement, non-retirement, trust, liability).
+
+   Inputs:
+     bubble — a QuarterlyReportBalance with .account (master row) attached.
+
+   The bubble's category drives the layout variant; the master account's
+   status drives the stale-asterisk highlight. #}
+{% set a = bubble.account %}
+{% set is_stale = a.status in ('stale', 'missing') %}
+{% set is_liability = a.category == 'liability' %}
+<div class="tcc-bubble tcc-bubble-{{ a.category }}{% if is_stale %} is-stale{% endif %}">
+    <div class="bub-row bub-type">
+        ACCT: {{ a.account_type or '—' }}{% if a.account_last_four %} <span class="bub-ll">x{{ a.account_last_four }}</span>{% endif %}
+    </div>
+    {% set display_name = a.institution_name or a.account_nickname %}
+    {% if display_name %}
+    <div class="bub-row bub-name" title="{{ display_name }}">{{ display_name }}</div>
+    {% endif %}
+    <div class="bub-row bub-balance">{{ bubble.balance_at_report|currency }}{% if is_stale %}*{% endif %}</div>
+    {% if is_liability and a.interest_rate is not none %}
+    <div class="bub-row bub-rate">{{ a.interest_rate|percent }} rate</div>
+    {% elif bubble.cash_balance_at_report is not none %}
+    <div class="bub-row bub-cash">{{ bubble.cash_balance_at_report|currency }} cash</div>
+    {% endif %}
+    {% if a.date_updated %}
+    <div class="bub-row bub-date">a/o {{ a.date_updated.strftime('%m/%d/%Y') }}</div>
+    {% endif %}
+</div>
