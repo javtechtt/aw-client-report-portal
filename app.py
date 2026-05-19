@@ -29,6 +29,15 @@ def create_app(config_name: str | None = None) -> Flask:
 
     db.init_app(app)
 
+    # Auto-create tables on startup. SQLAlchemy's create_all() uses
+    # CREATE TABLE IF NOT EXISTS so this is idempotent and never modifies
+    # existing tables. Avoids needing a separate `flask init-db` step on
+    # fresh deploys (Railway, new env, etc.). For schema changes later
+    # we'd swap this for Alembic migrations.
+    with app.app_context():
+        import models  # noqa: F401 — register model classes with metadata
+        db.create_all()
+
     from routes import dashboard, clients, accounts, reports
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(clients.bp)
